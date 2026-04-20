@@ -1,0 +1,13 @@
+{
+  "name": "hts-scanner",
+  "version": "1.0.0",
+  "description": "Scanner de ressources FiveM pour HebergTonServ — fork de fivem-security-auditor",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "license": "CC-BY-NC-4.0",
+  "dependencies": {
+    "glob": "^13.0.1"
+  }
+}
