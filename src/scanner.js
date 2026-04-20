@@ -10,6 +10,11 @@ const { analyzeDLL } = require("./dllAnalyzer");
 
 const EXCLUDED_PATH_SEGMENTS = [
   path.join("citizen", "clr2"),
+  "alpine",
+  "cache",
+  "logs",
+  ".yarn",
+  ".npm",
 ];
 
 const DLL_EXCLUDED_SEGMENTS = [
@@ -97,6 +102,17 @@ function scan(root) {
     const name = path.basename(fullPath);
 
     if (fullPath.split(path.sep).includes("node_modules")) return;
+
+    const normalizedWalkPath = fullPath.replace(/\\/g, "/");
+    if (
+      EXCLUDED_PATH_SEGMENTS.some(
+        (seg) =>
+          normalizedWalkPath.includes(`/${seg.replace(/\\/g, "/")}/`) ||
+          normalizedWalkPath.endsWith(`/${seg.replace(/\\/g, "/")}`)
+      )
+    ) {
+      return;
+    }
 
     if (isDir) {
       if (isWindowsHidden(fullPath)) {
