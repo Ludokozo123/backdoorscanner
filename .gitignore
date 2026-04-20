@@ -1,7 +1,6 @@
-node_modules/
-reports/
+/reports
 package-lock.json
-.DS_Store
-.vscode/
-.idea/
-*.log
+/node_modules
+/node_modules
+package-lock.json
+/Backdoors Test

@@ -1,13 +1,17 @@
 {
-  "name": "hts-scanner",
+  "name": "fivem-security-auditor",
   "version": "1.0.0",
-  "description": "Scanner de ressources FiveM pour HebergTonServ — fork de fivem-security-auditor",
+  "description": "Open-source security auditor for FiveM servers (offline analysis)",
   "main": "index.js",
+  "bin": {
+    "fivem-audit": "index.js"
+  },
   "scripts": {
     "start": "node index.js"
   },
-  "license": "CC-BY-NC-4.0",
+  "license": "MIT",
   "dependencies": {
-    "glob": "^13.0.1"
+    "glob": "^13.0.1",
+    "winattr": "^3.0.0"
   }
 }

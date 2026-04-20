@@ -4,39 +4,6 @@ function getLineNumber(content, index) {
   return content.slice(0, index).split("\n").length;
 }
 
-const WEBPACK_VOCABULARY = [
-  "__webpack_require__",
-  "__webpack_exports__",
-  "__webpack_modules__",
-  "installedModules",
-  "webpackChunk",
-  "webpackJsonp",
-  "__webpack_public_path__",
-];
-
-function looksLikeRealWebpack(content) {
-  let matches = 0;
-  for (const token of WEBPACK_VOCABULARY) {
-    if (content.includes(token)) matches++;
-    if (matches >= 3) return true;
-  }
-  return false;
-}
-
-const BLUM_XOR_DECODER = /String\.fromCharCode\s*\(\s*\w+\s*\[\s*\w+\s*\]\s*\^\s*\w+\s*\)/;
-const BLUM_LONG_INT_ARRAY = /\[\s*\d+(?:\s*,\s*\d+){19,}/;
-
-function detectBlumXorLoader(filePath, content) {
-  if (!BLUM_XOR_DECODER.test(content)) return null;
-  if (!BLUM_LONG_INT_ARRAY.test(content)) return null;
-  return {
-    type: "blum_xor_loader",
-    file: filePath,
-    risk: "critical",
-    reason: "Loader XOR type Blum : décodeur String.fromCharCode(a[i] ^ k) + array d'entiers ≥20",
-  };
-}
-
 function detectBundlerFingerprint(content, normalizedPath) {
   const isNextJs =
     content.includes("__NEXT_DATA__") ||
@@ -154,13 +121,11 @@ function analyzeJS(filePath) {
   const bundler = detectBundlerFingerprint(content, normalizedPath);
   const isBundlerBuild = bundler !== null;
 
-  const pathMatchesLegacyWhitelist =
+  const isLegacyFiltered =
     normalizedPath.includes("/yarn/") ||
     normalizedPath.includes("/screenshot-basic/") ||
     normalizedPath.includes("/monitor/") ||
     normalizedPath.includes("/monitor/core/");
-
-  const isLegacyFiltered = pathMatchesLegacyWhitelist && looksLikeRealWebpack(content);
 
   const customfilter = isLegacyFiltered || isBundlerBuild;
 
@@ -186,17 +151,13 @@ function analyzeJS(filePath) {
   }
 
   const txCheck = checkTxAdminIntegrity(filePath, content);
-
-  const blumIssue = detectBlumXorLoader(filePath, content);
-  if (blumIssue) issues.push(blumIssue);
-
   if (txCheck && txCheck.risk === "critical") {
-    return [...issues, txCheck];
+    return [txCheck];
   }
 
   const txPlayersDBExport = checkTxAdminPlayersDBExport(filePath, content);
   if (txPlayersDBExport) {
-    return [...issues, txPlayersDBExport];
+    return [txPlayersDBExport];
   }
 
   const cleanContent = content.replace(/['"\\s+]/g, "");

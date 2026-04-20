@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const winattr = require("winattr");
 const { analyzeJS } = require("./jsAnalyzer");
 const { analyzeDLL } = require("./dllAnalyzer");
 const { globSync } = require("glob");
@@ -15,6 +16,32 @@ function resolveJsPaths(baseDir, jsPath) {
     absolute: true,
     nodir: true,
   });
+}
+
+function isWindowsHidden(filePath) {
+  if (!fs.existsSync(filePath)) return false;
+  try {
+    const attr = winattr.getSync(filePath);
+    return attr.hidden || attr.system;
+  } catch {
+    return false;
+  }
+}
+
+function isInsideHiddenFolder(filePath) {
+  if (!fs.existsSync(filePath)) return false;
+
+  let current = path.parse(filePath).root;
+  const relative = path.relative(current, filePath);
+  const parts = relative.split(path.sep);
+
+  for (const part of parts.slice(0, -1)) {
+    current = path.join(current, part);
+    if (isWindowsHidden(current)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function analyzeDllReference(filePath, baseDir, currentBlock, dllPath, lineNumber) {
@@ -121,6 +148,9 @@ function analyzeManifest(filePath) {
       }
 
       resolvedFiles.forEach((fullJsPath) => {
+        const hidden =
+          isWindowsHidden(fullJsPath) || isInsideHiddenFolder(fullJsPath);
+
         let risk = "warning";
         let reason = `Ruta de un archivo JS dentro de ${currentBlock}`;
 
@@ -130,6 +160,12 @@ function analyzeManifest(filePath) {
         if (hasCritical) {
           risk = "critical";
           reason = `JS en ${currentBlock} con firmas maliciosas críticas detectadas`;
+        }
+
+        if (currentBlock === "shared_scripts" && hidden) {
+          risk = "critical";
+          reason =
+            "JS en shared_scripts con firmas maliciosas y ubicado en archivo o carpeta oculta";
         }
 
         issues.push({

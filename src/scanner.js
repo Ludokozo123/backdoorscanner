@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const winattr = require("winattr");
 const { walk } = require("./utils");
 const { analyzeManifest } = require("./manifestAnalyzer");
 const { analyzeLua } = require("./luaAnalyzer");
@@ -10,11 +11,6 @@ const { analyzeDLL } = require("./dllAnalyzer");
 
 const EXCLUDED_PATH_SEGMENTS = [
   path.join("citizen", "clr2"),
-  "alpine",
-  "cache",
-  "logs",
-  ".yarn",
-  ".npm",
 ];
 
 const DLL_EXCLUDED_SEGMENTS = [
@@ -30,7 +26,13 @@ function isExcludedDLL(fullPath) {
 }
 
 function isWindowsHidden(filePath) {
-  return false;
+  if (!fs.existsSync(filePath)) return false;
+  try {
+    const attr = winattr.getSync(filePath);
+    return attr.hidden || attr.system;
+  } catch {
+    return false;
+  }
 }
 
 function isDotFile(filePath) {
@@ -102,17 +104,6 @@ function scan(root) {
     const name = path.basename(fullPath);
 
     if (fullPath.split(path.sep).includes("node_modules")) return;
-
-    const normalizedWalkPath = fullPath.replace(/\\/g, "/");
-    if (
-      EXCLUDED_PATH_SEGMENTS.some(
-        (seg) =>
-          normalizedWalkPath.includes(`/${seg.replace(/\\/g, "/")}/`) ||
-          normalizedWalkPath.endsWith(`/${seg.replace(/\\/g, "/")}`)
-      )
-    ) {
-      return;
-    }
 
     if (isDir) {
       if (isWindowsHidden(fullPath)) {
